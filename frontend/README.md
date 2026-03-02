@@ -1,4 +1,4 @@
-# Frontend - ValoMeteo
+# Frontend - Valomauri
 
 ## Lancer le projet
 
