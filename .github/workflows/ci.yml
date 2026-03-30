@@ -3,6 +3,7 @@ run-name: ${{ github.actor }} is learning GitHub Actions
 
 permissions:
   contents: read
+  security-events: write
 
 on:
   push:
@@ -30,8 +31,8 @@ jobs:
       - name: Run lint
         run: |
           cd frontend
-          npm run lint  
-      
+          npm run lint
+
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
@@ -46,35 +47,3 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy-results.sarif'
-
-
-      # Deploy docker image
-      - name: lowercase repo name
-        run: |
-          echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
-
-      - name: log in to the Container REGISTRY
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Verify tag image exists
-        run: |
-          docker manifest inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.event.inputs.tag }} > /dev/null
-          docker manifest inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.event.inputs.tag }} > /dev/null
-
-      - name: Connect to Tailscale
-        uses: tailscale/github-action@v4
-        with:
-          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          tags: tag:ci
-
-      - name: Change backend and frontend name image in the compose file
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.CI_USER }}@${{ secrets.CI_TAILSCALE_HOST }} << 'EOF'
-          sudo sed -i "s|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend.*|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.event.inputs.tag }}|" /opt/d4g/docker-compose.yml
-          sudo sed -i "s|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend.*|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.event.inputs.tag }}|" /opt/d4g/docker-compose.yml
-          EOF
