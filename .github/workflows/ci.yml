@@ -60,6 +60,9 @@ jobs:
         run: |
           uv sync --extra dev
           cp .env.example .env
+      - name: Start db
+        working-directory: backend/timescaledb-env
+        run: docker compose up -d --wait
       - name: Run tests
         working-directory: backend
         run: uv run pytest
